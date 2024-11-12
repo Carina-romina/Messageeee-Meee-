@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .home-container {
+            background-color: #2a2f32;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #fff;
+        }
+        a {
+            color: #bbb;
+        }
+    </style>
+    <script>
+        // Redirect to the login page after 3 seconds
+        setTimeout(() => {
+            window.location.href = "{{ url_for('login') }}";
+        }, 3000);
+    </script>
+</head>
+<body>
+    <div class="home-container">
+        <h1>Welcome to Messageeee Meee!</h1>
+        <a href="{{ url_for('login') }}">Login</a>
+        
+        {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <p>You will be redirected to the login page in 3 seconds...</p>
+    </div>
+</body>
+</html>

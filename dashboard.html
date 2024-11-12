@@ -1,0 +1,184 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { background-color: #1e1e1e; color: #fff; }
+        .container { height: 100vh; display: flex; flex-direction: row; }
+        #contacts-list { background-color: #2a2f32; width: 30%; overflow-y: auto; border-right: 1px solid #ccc; }
+        #contacts-list ul { list-style-type: none; padding: 0; }
+        #contacts-list li { background-color: #B3E5FC; color: #000; margin: 5px 0; padding: 10px; border-radius: 5px; cursor: pointer; }
+        #contacts-list li:hover { background-color: #81D4FA; }
+        #chat-section { flex-grow: 1; display: flex; flex-direction: column; background-color: #0b141a; color: #fff; }
+        #chat-container { flex-grow: 1; padding: 20px; overflow-y: auto; border-bottom: 1px solid #ccc; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 5px; max-width: 80%; }
+        .sender { background-color: #056162; align-self: flex-end; text-align: right; color: white; }
+        .receiver { background-color: #262d31; align-self: flex-start; text-align: left; color: white; }
+        #message-input-container { padding: 10px; background-color: #1e2428; display: flex; align-items: center; }
+        #message-input { flex-grow: 1; padding: 10px; background-color: #333; border: none; color: white; border-radius: 30px; }
+        #send-message { margin-left: 10px; background-color: #056162; border: none; padding: 10px 20px; border-radius: 30px; color: white; }
+        h1 { text-align: center; margin-top: 20px; font-size: 2.5rem; color: #fff; }
+        #add-contact-form { padding: 15px; }
+        #add-contact-form input { margin-bottom: 10px; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <!-- Title -->
+    <h1>Messageeee Meee!</h1>
+
+    <div class="container">
+        <!-- Contact List Section -->
+        <div id="contacts-list">
+            <h4 class="text-center p-3">Conversații</h4>
+
+            <!-- Add New Contact Section -->
+            <form id="add-contact-form" class="p-3">
+                <input type="text" id="contact-username" placeholder="Enter username" class="form-control" required>
+                <button type="submit" class="btn btn-primary btn-block">Add New Contact</button>
+            </form>
+
+            <!-- Contacts List -->
+            <ul class="list-group">
+                <!-- Contacts will be dynamically populated here -->
+            </ul>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chat-section">
+            <!-- Chat Header -->
+            <div id="chat-header" class="p-3 bg-dark">
+                <h5 id="contact-name">Select a contact to start chatting</h5>
+            </div>
+            
+            <!-- Chat Container -->
+            <div id="chat-container">
+                <!-- Messages will be dynamically populated here -->
+            </div>
+
+            <!-- Message Input -->
+            <div id="message-input-container">
+                <input type="text" id="message-input" class="form-control" placeholder="Scrieți un mesaj">
+                <button id="send-message" class="btn btn-primary">Trimiteți</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const addContactForm = document.getElementById('add-contact-form');
+        const contactUsernameInput = document.getElementById('contact-username');
+        const contactsList = document.querySelector('#contacts-list ul');
+        const chatHeader = document.getElementById('chat-header');
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendMessageButton = document.getElementById('send-message');
+        let selectedContactId = null;
+
+        // Mock logged-in user's username
+        const currentUser = 'user1';
+
+        // Load contacts and chat history from localStorage
+        const contacts = JSON.parse(localStorage.getItem('contacts')) || [];
+        const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || {};
+
+        // Initialize contacts list on page load
+        function loadContacts() {
+            contactsList.innerHTML = '';
+            contacts.forEach(contact => {
+                const contactItem = document.createElement('li');
+                contactItem.className = 'list-group-item';
+                contactItem.textContent = contact.username;
+                contactItem.onclick = () => loadChat(contact.id, contact.username);
+                contactsList.appendChild(contactItem);
+            });
+        }
+
+        // Load chat for a specific contact
+        function loadChat(contactId, contactName) {
+            selectedContactId = contactId;
+            chatHeader.querySelector('#contact-name').textContent = contactName;
+            chatContainer.innerHTML = '';
+
+            const messages = chatHistory[contactId] || [];
+            messages.forEach(({ sender, content }) => {
+                const messageDiv = document.createElement('div');
+                const isCurrentUser = sender === currentUser;
+                messageDiv.className = `message ${isCurrentUser ? 'sender' : 'receiver'}`;
+                messageDiv.innerHTML = `<strong>${isCurrentUser ? 'You' : sender}:</strong> ${content}`;
+                chatContainer.appendChild(messageDiv);
+            });
+
+            messageInput.placeholder = `Scrieți un mesaj pentru ${contactName}...`;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Save contacts and chat history to localStorage
+        function saveData() {
+            localStorage.setItem('contacts', JSON.stringify(contacts));
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+
+        // Add a new contact
+        addContactForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const username = contactUsernameInput.value;
+
+            const response = await fetch('/add_contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const contact = { id: result.id, username: result.username };
+                contacts.push(contact);
+                const contactItem = document.createElement('li');
+                contactItem.className = 'list-group-item';
+                contactItem.textContent = contact.username;
+                contactItem.onclick = () => loadChat(contact.id, contact.username);
+                contactsList.appendChild(contactItem);
+                contactUsernameInput.value = '';
+                chatHistory[contact.id] = chatHistory[contact.id] || [];
+                saveData();
+            } else {
+                alert(result.message);
+            }
+        };
+
+        // Send message
+        sendMessageButton.onclick = async () => {
+            const messageContent = messageInput.value;
+            if (selectedContactId && messageContent.trim() !== '') {
+                const response = await fetch('/send_message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: messageContent, receiver_id: selectedContactId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    const newMessage = { sender: currentUser, content: messageContent };
+                    chatHistory[selectedContactId] = chatHistory[selectedContactId] || [];
+                    chatHistory[selectedContactId].push(newMessage);
+
+                    const newMessageDiv = document.createElement('div');
+                    newMessageDiv.className = 'message sender';
+                    newMessageDiv.innerHTML = `<strong>You:</strong> ${messageContent}`;
+                    chatContainer.appendChild(newMessageDiv);
+                    messageInput.value = '';
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    saveData();
+                }
+            }
+        };
+
+        // Load contacts and chat history on page load
+        loadContacts();
+    </script>
+
+</body>
+</html>
